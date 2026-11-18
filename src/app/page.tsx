@@ -237,9 +237,9 @@ export default function DashboardPage() {
             <div className="h-4 w-px bg-slate-800 mx-1 hidden sm:block" />
 
             {/* Min Daily Traffic Threshold Input */}
-            <div className="flex items-center space-x-1.5 px-2.5 py-1 bg-slate-800/80 border border-slate-700/80 rounded-xl text-xs shadow-inner" title="Ambang batas minimal kunjungan per hari untuk Kuadran 1 (Stars)">
+            <div className="flex items-center space-x-1.5 px-2.5 py-1 bg-slate-800/80 border border-slate-700/80 rounded-xl text-xs shadow-inner" title="Garis batas pemisah Trafik Tinggi vs Rendah untuk membagi seluruh 4 Kuadran Matrix">
               <Target className="h-3.5 w-3.5 text-amber-400 shrink-0" />
-              <span className="text-slate-400 font-medium whitespace-nowrap hidden lg:inline">Min. Star:</span>
+              <span className="text-slate-400 font-medium whitespace-nowrap hidden lg:inline">Ambang Trafik:</span>
               <input
                 type="number"
                 min={5}
