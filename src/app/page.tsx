@@ -57,11 +57,11 @@ export default function DashboardPage() {
       setStartDate('2026-11-16');
       setEndDate('2026-11-16');
     } else if (preset === '7days') {
-      setStartDate('2026-11-10');
-      setEndDate('2026-11-16');
+      setStartDate('2026-11-11');
+      setEndDate('2026-11-17');
     } else if (preset === 'mtd') {
       setStartDate('2026-11-01');
-      setEndDate('2026-11-16');
+      setEndDate('2026-11-17');
     }
   };
 
