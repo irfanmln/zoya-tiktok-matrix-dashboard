@@ -9,6 +9,9 @@ export interface MatrixResult {
     totalAdsGmv: number;
     overallRoas: number;
     medianTraffic: number;
+    minDailyTraffic: number;
+    periodDays: number;
+    effectiveTrafficThreshold: number;
     activeProductsCount: number;
     heroProductsCount: number;
     starsCount: number;
@@ -43,7 +46,13 @@ async function fetchAllRows(tableName: string, filterDate?: { start: string; end
   return allRows;
 }
 
-export async function fetchMatrixData(startDate: string, endDate: string): Promise<MatrixResult> {
+export async function fetchMatrixData(startDate: string, endDate: string, minDailyTraffic: number = 50): Promise<MatrixResult> {
+  // Calculate period duration in days for auto-scaling benchmark
+  const d1 = new Date(startDate);
+  const d2 = new Date(endDate);
+  const diffDays = Math.max(1, Math.round(Math.abs(d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+  const effectiveTrafficThreshold = Math.max(1, minDailyTraffic * diffDays);
+
   // 1. Fetch products master (with pagination)
   const productsData = await fetchAllRows('products', undefined, 'product_id, product_name, category, seller_sku, price');
   const productsMap = new Map((productsData || []).map((p) => [p.product_id, p]));
@@ -166,8 +175,8 @@ export async function fetchMatrixData(startDate: string, endDate: string): Promi
       pareto_tier = 'CORE (15%)';
     }
 
-    // Determine Kuadran
-    const isHighTraffic = item.visitors >= medianTraffic;
+    // Determine Kuadran based on auto-scaling threshold
+    const isHighTraffic = item.visitors >= effectiveTrafficThreshold;
     const isHighConv = item.ctor >= 2.0;
 
     let kuadran_code: DynamicMatrixItem['kuadran_code'] = 4;
@@ -224,8 +233,11 @@ export async function fetchMatrixData(startDate: string, endDate: string): Promi
       }
     }
 
+    const dailyVisitors = Math.round(item.visitors / diffDays);
+
     return {
       ...item,
+      daily_visitors: dailyVisitors,
       pareto_tier,
       kuadran_code,
       kuadran_name,
@@ -252,6 +264,9 @@ export async function fetchMatrixData(startDate: string, endDate: string): Promi
       totalAdsGmv,
       overallRoas,
       medianTraffic,
+      minDailyTraffic,
+      periodDays: diffDays,
+      effectiveTrafficThreshold,
       activeProductsCount: rawItems.length,
       heroProductsCount: heroCount,
       starsCount,

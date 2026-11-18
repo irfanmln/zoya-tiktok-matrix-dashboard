@@ -43,6 +43,7 @@ export default function DashboardPage() {
   const [endDate, setEndDate] = useState('2026-11-16');
 
   // Matrix and UI states
+  const [minDailyTraffic, setMinDailyTraffic] = useState<number>(50);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<MatrixResult | null>(null);
@@ -70,7 +71,7 @@ export default function DashboardPage() {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetchMatrixData(startDate, endDate);
+      const res = await fetchMatrixData(startDate, endDate, minDailyTraffic);
       setData(res);
     } catch (err: any) {
       console.error(err);
@@ -82,7 +83,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     loadData();
-  }, [startDate, endDate]);
+  }, [startDate, endDate, minDailyTraffic]);
 
   // Filtered items based on search and tab
   const filteredItems = useMemo(() => {
@@ -235,6 +236,29 @@ export default function DashboardPage() {
 
             <div className="h-4 w-px bg-slate-800 mx-1 hidden sm:block" />
 
+            {/* Min Daily Traffic Threshold Input */}
+            <div className="flex items-center space-x-1.5 px-2.5 py-1 bg-slate-800/80 border border-slate-700/80 rounded-xl text-xs shadow-inner" title="Ambang batas minimal kunjungan per hari untuk Kuadran 1 (Stars)">
+              <Target className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+              <span className="text-slate-400 font-medium whitespace-nowrap hidden lg:inline">Min. Star:</span>
+              <input
+                type="number"
+                min={5}
+                max={2000}
+                step={10}
+                value={minDailyTraffic}
+                onChange={(e) => setMinDailyTraffic(Math.max(1, Number(e.target.value) || 10))}
+                className="w-12 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-center text-white font-bold focus:outline-none focus:ring-1 focus:ring-amber-500"
+              />
+              <span className="text-slate-400 whitespace-nowrap">/hari</span>
+              {(data?.summary.periodDays || 1) > 1 && (
+                <span className="text-[10px] text-amber-300 font-bold bg-amber-500/20 px-1.5 py-0.5 rounded border border-amber-500/30 whitespace-nowrap">
+                  Total: ≥{(data?.summary.effectiveTrafficThreshold || minDailyTraffic).toLocaleString('id-ID')}
+                </span>
+              )}
+            </div>
+
+            <div className="h-4 w-px bg-slate-800 mx-1 hidden sm:block" />
+
             <button
               onClick={() => setIsUploadOpen(true)}
               className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white text-xs font-semibold shadow-md shadow-rose-950/40 transition-all cursor-pointer"
@@ -327,16 +351,21 @@ export default function DashboardPage() {
           {/* Card 4: Dynamic Benchmark */}
           <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 relative overflow-hidden group hover:border-slate-700 transition-all">
             <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-semibold uppercase tracking-wider">Benchmark Dinamis</span>
+              <span className="text-xs font-semibold uppercase tracking-wider">Benchmark Trafik</span>
               <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400">
                 <Target className="h-4 w-4" />
               </div>
             </div>
             <div className="text-2xl font-bold text-white tracking-tight">
-              {data?.summary.medianTraffic || 0} <span className="text-sm font-normal text-slate-400">kunjungan/hari</span>
+              ≥ {(data?.summary.effectiveTrafficThreshold || minDailyTraffic).toLocaleString('id-ID')}{' '}
+              <span className="text-sm font-normal text-slate-400">kunjungan</span>
             </div>
-            <div className="mt-2 text-xs text-slate-400">
-              Median otomatis dari <span className="font-semibold text-slate-200">{data?.summary.activeProductsCount || 0}</span> produk aktif
+            <div className="mt-2 text-xs text-slate-400 flex items-center justify-between">
+              <span>
+                Target: <span className="font-semibold text-amber-300">{minDailyTraffic}/hari</span> ×{' '}
+                <span className="font-semibold text-slate-200">{data?.summary.periodDays || 1} hari</span>
+              </span>
+              <span className="text-[10px] text-slate-500">(Med: {data?.summary.medianTraffic || 0})</span>
             </div>
           </div>
         </section>
@@ -352,7 +381,7 @@ export default function DashboardPage() {
                   Dynamic BCG Matrix Visualization
                 </h2>
                 <p className="text-xs text-slate-400">
-                  Garis Vertikal = Median Kunjungan ({data?.summary.medianTraffic || 0}) | Garis Horizontal = Benchmark CTOR (2.0%)
+                  Garis Vertikal = Min. Trafik Star (≥ {(data?.summary.effectiveTrafficThreshold || minDailyTraffic).toLocaleString('id-ID')}) | Garis Horizontal = Benchmark CTOR (2.0%)
                 </p>
               </div>
               <div className="flex items-center gap-2 text-xs">
@@ -429,12 +458,12 @@ export default function DashboardPage() {
                     }}
                   />
                   {/* Reference Lines */}
-                  {data && data.summary.medianTraffic > 0 && (
+                  {data && (
                     <ReferenceLine
-                      x={data.summary.medianTraffic}
+                      x={data.summary.effectiveTrafficThreshold || minDailyTraffic}
                       stroke="#F59E0B"
                       strokeDasharray="4 4"
-                      label={{ value: 'Median Traffic', fill: '#F59E0B', fontSize: 10, position: 'top' }}
+                      label={{ value: `Min Star (${data.summary.effectiveTrafficThreshold || minDailyTraffic})`, fill: '#F59E0B', fontSize: 10, position: 'top' }}
                     />
                   )}
                   <ReferenceLine
@@ -652,7 +681,12 @@ export default function DashboardPage() {
 
                       {/* Visitors */}
                       <td className="py-3 px-3 text-right font-medium text-slate-200">
-                        {item.visitors.toLocaleString('id-ID')}
+                        <div>{item.visitors.toLocaleString('id-ID')}</div>
+                        {(data?.summary.periodDays || 1) > 1 && (
+                          <div className="text-[10px] text-slate-500 font-normal">
+                            {item.daily_visitors || Math.round(item.visitors / (data?.summary.periodDays || 1))}/hari
+                          </div>
+                        )}
                       </td>
 
                       {/* CTOR */}

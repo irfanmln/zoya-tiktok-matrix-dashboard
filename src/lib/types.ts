@@ -77,6 +77,7 @@ export interface DynamicMatrixItem {
   store_gmv: number;
   store_orders: number;
   visitors: number;
+  daily_visitors?: number;
   atc: number;
   ctor: number; // percentage, e.g. 2.82
   aov: number;
