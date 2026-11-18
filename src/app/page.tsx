@@ -156,7 +156,7 @@ export default function DashboardPage() {
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <h1 className="text-xl font-bold tracking-tight text-white">ZOYA TikTok Growth Matrix</h1>
+                <h1 className="text-xl font-bold tracking-tight text-white">TikTok Growth Matrix</h1>
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                   Supabase Cloud Live
