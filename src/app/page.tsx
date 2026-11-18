@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   HelpCircle,
   Zap,
+  Upload,
 } from 'lucide-react';
 import {
   ScatterChart,
@@ -33,6 +34,7 @@ import {
 } from 'recharts';
 import { fetchMatrixData, MatrixResult } from '@/lib/matrix';
 import { DynamicMatrixItem } from '@/lib/types';
+import UploadModal from '@/components/UploadModal';
 
 export default function DashboardPage() {
   // Date range states
@@ -46,6 +48,7 @@ export default function DashboardPage() {
   const [data, setData] = useState<MatrixResult | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'q1' | 'q2' | 'q3' | 'q4' | 'hero'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
 
   // Handle Preset changes
   const applyPreset = (preset: 'yesterday' | '7days' | 'mtd' | 'custom') => {
@@ -229,6 +232,16 @@ export default function DashboardPage() {
                 <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
               </button>
             </div>
+
+            <div className="h-4 w-px bg-slate-800 mx-1 hidden sm:block" />
+
+            <button
+              onClick={() => setIsUploadOpen(true)}
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white text-xs font-semibold shadow-md shadow-rose-950/40 transition-all cursor-pointer"
+            >
+              <Upload className="h-3.5 w-3.5" />
+              <span>Upload Raw</span>
+            </button>
           </div>
         </div>
       </header>
@@ -715,6 +728,13 @@ export default function DashboardPage() {
       <footer className="border-t border-slate-800/80 py-4 px-6 text-center text-xs text-slate-500">
         PT Shafco Multi Trading &bull; Zoya Performance Growth Platform &bull; Supabase + Next.js Dynamic Architecture
       </footer>
+
+      {/* Upload Modal */}
+      <UploadModal
+        isOpen={isUploadOpen}
+        onClose={() => setIsUploadOpen(false)}
+        onSuccess={() => loadData()}
+      />
     </div>
   );
 }
