@@ -19,47 +19,46 @@ export interface MatrixResult {
   items: DynamicMatrixItem[];
 }
 
-export async function fetchMatrixData(startDate: string, endDate: string): Promise<MatrixResult> {
-  // 1. Fetch products master
-  const { data: productsData, error: prodErr } = await supabase
-    .from('products')
-    .select('product_id, product_name, category, seller_sku, price');
+// Helper to fetch all rows across PostgREST 1000-row pagination limit
+async function fetchAllRows(tableName: string, filterDate?: { start: string; end: string }, selectCols: string = '*', orderBy?: { col: string; ascending: boolean }) {
+  let allRows: any[] = [];
+  let from = 0;
+  const pageSize = 1000;
+  
+  while (true) {
+    let query = supabase.from(tableName).select(selectCols);
+    if (filterDate) {
+      query = query.gte('date', filterDate.start).lte('date', filterDate.end);
+    }
+    if (orderBy) {
+      query = query.order(orderBy.col, { ascending: orderBy.ascending });
+    }
+    const { data, error } = await query.range(from, from + pageSize - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    allRows.push(...data);
+    if (data.length < pageSize) break;
+    from += pageSize;
+  }
+  return allRows;
+}
 
-  if (prodErr) throw prodErr;
+export async function fetchMatrixData(startDate: string, endDate: string): Promise<MatrixResult> {
+  // 1. Fetch products master (with pagination)
+  const productsData = await fetchAllRows('products', undefined, 'product_id, product_name, category, seller_sku, price');
   const productsMap = new Map((productsData || []).map((p) => [p.product_id, p]));
 
-  // 2. Fetch daily store metrics
-  const { data: storeData, error: storeErr } = await supabase
-    .from('daily_store_metrics')
-    .select('*')
-    .gte('date', startDate)
-    .lte('date', endDate);
+  // 2. Fetch daily store metrics (with pagination)
+  const storeData = await fetchAllRows('daily_store_metrics', { start: startDate, end: endDate });
 
-  if (storeErr) throw storeErr;
+  // 3. Fetch daily ads metrics (with pagination to prevent 1000-row cutoff on MTD)
+  const adsData = await fetchAllRows('daily_ads_metrics', { start: startDate, end: endDate });
 
-  // 3. Fetch daily ads metrics
-  const { data: adsData, error: adsErr } = await supabase
-    .from('daily_ads_metrics')
-    .select('*')
-    .gte('date', startDate)
-    .lte('date', endDate);
+  // 4. Fetch live ads metrics (with pagination)
+  const liveData = await fetchAllRows('daily_live_ads_metrics', { start: startDate, end: endDate });
 
-  if (adsErr) throw adsErr;
-
-  // 4. Fetch live ads metrics
-  const { data: liveData } = await supabase
-    .from('daily_live_ads_metrics')
-    .select('*')
-    .gte('date', startDate)
-    .lte('date', endDate);
-
-  // 5. Fetch latest stock
-  const { data: stockData, error: stockErr } = await supabase
-    .from('daily_stock_snapshots')
-    .select('product_id, total_stock, price')
-    .order('date', { ascending: false });
-
-  if (stockErr) throw stockErr;
+  // 5. Fetch latest stock (with pagination)
+  const stockData = await fetchAllRows('daily_stock_snapshots', undefined, 'product_id, total_stock, price', { col: 'date', ascending: false });
   const stockMap = new Map();
   (stockData || []).forEach((s) => {
     if (!stockMap.has(s.product_id)) {
